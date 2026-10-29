@@ -43,17 +43,24 @@ app.use("/session", routes.session);
 app.use("/users", routes.user);
 app.use("/messages", routes.message);
 
+
 // ======================================================
 // MIDDLEWARE GLOBAL DE TRATAMENTO DE ERROS
 // Deve ficar DEPOIS de todas as rotas
 // ======================================================
 
+
 app.use((err, req, res, next) => {
+  // Se a resposta já começou, delega o erro ao Express.
+  if (res.headersSent) {
+    return next(err);
+  }
+
   let statusCode = 500;
   let status = "error";
   let message = "Algo deu errado no servidor";
 
-  // Erro de validação do Sequelize
+  // 1. Erro de validação do Sequelize
   if (err instanceof Sequelize.ValidationError) {
     statusCode = 400;
     status = "fail";
@@ -63,7 +70,7 @@ app.use((err, req, res, next) => {
       .join(", ");
   }
 
-  // Erro de registro duplicado
+  // 2. Violação de unicidade: registro duplicado
   if (err instanceof Sequelize.UniqueConstraintError) {
     statusCode = 409;
     status = "fail";
@@ -73,7 +80,7 @@ app.use((err, req, res, next) => {
       "Registro duplicado";
   }
 
-  // Erro operacional da aplicação
+  // 3. Erro operacional previsto pela aplicação
   if (err instanceof AppError) {
     statusCode = err.statusCode;
     status = err.status;
@@ -85,13 +92,14 @@ app.use((err, req, res, next) => {
     message,
   };
 
-  // Stack trace somente em ambiente de desenvolvimento
+  // Stack trace somente em desenvolvimento
   if (process.env.NODE_ENV === "development") {
     response.stack = err.stack;
   }
 
   return res.status(statusCode).json(response);
 });
+
 
 // ======================================================
 // INICIALIZAÇÃO DO SERVIDOR

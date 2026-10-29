@@ -1,19 +1,24 @@
 
 import "dotenv/config";
-import cors from "cors";
 import express from "express";
 import Sequelize from "sequelize";
 
 import models, { sequelize } from "./models/index.js";
 import routes from "./routes/index.js";
 import AppError from "./utils/appError.js";
+import helmet from "helmet";
+import corsMiddleware from "./middlewares/cors.js";
 
 const app = express();
 
 app.set("trust proxy", true);
 
 // Middlewares
-app.use(cors());
+// Middlewares de segurança
+app.use(helmet());
+app.use(corsMiddleware);
+
+// Middlewares de parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
